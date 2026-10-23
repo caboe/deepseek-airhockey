@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#03070d" />
+  <meta name="description" content="NEON PUCK — 3D Airhockey gegen eine adaptive KI. Umschaltbar zwischen Perspektiv- und 2D-Top-Ansicht." />
+  <title>NEON PUCK — 3D Airhockey</title>
+  <link rel="preload" href="./assets/fonts/chakra-petch-700.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="./assets/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="./assets/fonts/fonts.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050d15'/%3E%3Ccircle cx='32' cy='32' r='18' fill='none' stroke='%235df0ff' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%23ff3d8b'/%3E%3C/svg%3E" />
+</head>
+<body data-screen="menu">
+  <div id="app">
+    <canvas id="scene" aria-label="3D Airhockey Arena"></canvas>
+
+    <div class="fx-vignette" aria-hidden="true"></div>
+    <div class="fx-grain" aria-hidden="true"></div>
+    <div class="fx-scanlines" aria-hidden="true"></div>
+    <div id="goalFlash" class="goal-flash" aria-hidden="true"></div>
+    <div id="viewFlash" class="view-flash" aria-hidden="true"></div>
+
+    <div id="webglError" class="webgl-error" hidden>
+      <span class="eyebrow">SYSTEM FEHLER</span>
+      <h2>WebGL nicht verfügbar</h2>
+      <p>Dieses Spiel benötigt einen Browser mit aktivierter 3D-Beschleunigung. Bitte aktiviere WebGL oder nutze einen aktuellen Browser.</p>
+    </div>
+
+    <header class="hud-top">
+      <a class="brand" href="#" id="brandHome" aria-label="NEON PUCK — zum Hauptmenü">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 44 44" fill="none">
+            <circle cx="22" cy="22" r="19" stroke="currentColor" stroke-opacity=".48"/>
+            <circle cx="22" cy="22" r="12.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M22 3v9M22 32v9M3 22h9M32 22h9" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="22" cy="22" r="4.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>NEON PUCK</strong>
+          <small>AIR HOCKEY / ARENA 09</small>
+        </span>
+      </a>
+
+      <div class="scoreboard" id="scoreboard" aria-label="Punktestand">
+        <div class="team team--you">
+          <div class="team-meta"><span class="team-dot"></span><span class="team-name">DU</span></div>
+          <div class="team-score" id="scoreYou">0</div>
+        </div>
+        <div class="match-meta">
+          <span class="match-label">FIRST TO</span>
+          <span class="match-target">7</span>
+          <span class="match-status" id="matchStatus">READY</span>
+        </div>
+        <div class="team team--ai">
+          <div class="team-meta"><span class="team-name">NOVA</span><span class="team-dot"></span></div>
+          <div class="team-score" id="scoreAi">0</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="view-switch" role="group" aria-label="Kameraansicht">
+          <button type="button" class="view-btn is-active" data-view="3d" aria-pressed="true" title="3D-Perspektive (V)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 14 5v6L8 14.5 2 11V5l6-3.5Z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2 5l6 3.5L14 5M8 8.5v6" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+            <span>3D</span>
+          </button>
+          <button type="button" class="view-btn" data-view="2d" aria-pressed="false" title="2D-Top-Ansicht (V)">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1" opacity=".6"/><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+            <span>2D</span>
+          </button>
+        </div>
+        <button type="button" class="icon-btn" id="soundBtn" aria-label="Ton ausschalten" aria-pressed="false" title="Ton (M)">
+          <svg class="icon-on" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8v4h3l4 3.2V4.8L7 8H4Z" fill="currentColor"/><path d="M13.5 7.2a4 4 0 0 1 0 5.6M15.7 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="icon-off" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8v4h3l4 3.2V4.8L7 8H4Z" fill="currentColor"/><path d="m13.5 8 3 4m0-4-3 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="pauseBtn" aria-label="Pause" title="Pause (Esc)">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 4.5v11M13.5 4.5v11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="hud-bottom">
+      <div class="control-hint" id="controlHint">
+        <span class="mouse-glyph" aria-hidden="true">
+          <svg viewBox="0 0 20 26"><rect x="1" y="1" width="18" height="24" rx="9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 1v8" stroke="currentColor" stroke-width="1.4"/><path d="M10 6.2 8.4 4.6M10 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.2"/></svg>
+        </span>
+        <span class="hint-copy"><strong>MALLET BEWEGEN</strong><small>Maus oder Finger ziehen</small></span>
+      </div>
+      <div class="match-readout">
+        <span class="readout-item"><i class="readout-dot"></i><span id="difficultyReadout">PROTOCOL // PRO</span></span>
+        <span class="readout-sep"></span>
+        <span class="readout-item readout-rally">RALLY <b id="rallyReadout">00</b></span>
+      </div>
+      <div class="view-readout">
+        <span id="viewReadout">PERSPECTIVE</span>
+        <span class="view-lines" aria-hidden="true"><i></i><i></i><i></i></span>
+      </div>
+    </div>
+
+    <div class="announce" id="announce" aria-live="assertive" aria-atomic="true">
+      <span class="announce-eyebrow" id="announceEyebrow">OPENING FACE-OFF</span>
+      <strong class="announce-main" id="announceMain">3</strong>
+      <span class="announce-sub" id="announceSub">ERSTER BIS 7</span>
+    </div>
+
+    <!-- MAIN MENU -->
+    <section class="screen screen--menu is-open" id="menuScreen" aria-labelledby="menuTitle">
+      <div class="menu-verso" aria-hidden="true">
+        <span>ORBITAL LEAGUE</span><span>EST. 2084</span><span>LOCAL / SINGLE PLAYER</span>
+      </div>
+      <div class="menu-content">
+        <div class="eyebrow hero-eyebrow"><span class="eyebrow-line"></span>SEASON 01 <b>/</b> ORBITAL ARENA</div>
+        <h1 class="hero-title" id="menuTitle">
+          <span class="hero-neon">NEON</span>
+          <span class="hero-puck">PUCK<span class="hero-period">.</span></span>
+        </h1>
+        <p class="hero-sub">Holografisches Airhockey. Ein adaptiver Gegner. <br class="wide-break"/>Kein Platz für Fehler.</p>
+
+        <div class="protocol-block">
+          <div class="field-label"><span>GEGNER-PROTOKOLL</span><span class="field-index">01—03</span></div>
+          <div class="difficulty-options" id="difficultyOptions" role="radiogroup" aria-label="Schwierigkeit">
+            <button type="button" class="difficulty-card" data-difficulty="rookie" role="radio" aria-checked="false">
+              <span class="difficulty-top"><span class="difficulty-num">01</span><span class="difficulty-bars"><i></i><i></i><i></i></span></span>
+              <strong>ROOKIE</strong>
+              <small>Langsam &amp; verzeihend</small>
+            </button>
+            <button type="button" class="difficulty-card is-selected" data-difficulty="pro" role="radio" aria-checked="true">
+              <span class="difficulty-top"><span class="difficulty-num">02</span><span class="difficulty-bars"><i></i><i></i><i></i></span></span>
+              <strong>PRO</strong>
+              <small>Der faire Kampf</small>
+            </button>
+            <button type="button" class="difficulty-card" data-difficulty="legend" role="radio" aria-checked="false">
+              <span class="difficulty-top"><span class="difficulty-num">03</span><span class="difficulty-bars"><i></i><i></i><i></i></span></span>
+              <strong>LEGEND</strong>
+              <small>Gnadenlos präzise</small>
+            </button>
+          </div>
+          <p class="difficulty-desc" id="difficultyDesc">NOVA agiert schnell, liest deine Schüsse und spielt präzise Konter.</p>
+        </div>
+
+        <div class="menu-actions">
+          <button type="button" class="btn btn-primary" id="startBtn">
+            <span class="btn-shine" aria-hidden="true"></span>
+            <span>ENTER ARENA</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="match-length"><span>MATCH</span><strong>FIRST TO 7</strong></span>
+        </div>
+
+        <div class="menu-controls">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a3 3 0 0 1 3 3v7a3 3 0 1 1-6 0v-7a3 3 0 0 1 3-3Z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 2v4" stroke="currentColor" stroke-width="1.2"/></svg>Maus / Touch</span>
+          <span><kbd>V</kbd> Ansicht</span>
+          <span><kbd>ESC</kbd> Pause</span>
+        </div>
+      </div>
+
+      <div class="menu-side-info" aria-hidden="true">
+        <span class="side-rule"></span>
+        <span>3D PERSPEKTIVE</span>
+        <span>2D TOP-DOWN</span>
+        <span class="side-muted">DU GEGEN DIE MASCHINE</span>
+      </div>
+    </section>
+
+    <!-- PAUSE -->
+    <section class="screen screen--overlay screen--pause" id="pauseScreen" aria-labelledby="pauseTitle" aria-hidden="true">
+      <div class="dialog">
+        <span class="eyebrow"><span class="eyebrow-line"></span>SIMULATION ANGEHALTEN</span>
+        <h2 class="dialog-title" id="pauseTitle">PAUSE<span class="accent-dot">.</span></h2>
+        <p class="dialog-sub">Zeit für einen neuen Spielzug.</p>
+        <div class="dialog-actions dialog-actions--stack">
+          <button type="button" class="btn btn-primary" id="resumeBtn"><span>WEITERSPIELEN</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div class="dialog-row">
+            <button type="button" class="btn btn-ghost" id="restartBtn">NEU STARTEN</button>
+            <button type="button" class="btn btn-ghost" id="quitBtn">HAUPTMENÜ</button>
+          </div>
+        </div>
+        <div class="dialog-meta"><kbd>ESC</kbd> ZURÜCK ZUM SPIEL</div>
+      </div>
+    </section>
+
+    <!-- MATCH RESULT -->
+    <section class="screen screen--overlay screen--result" id="resultScreen" aria-labelledby="resultTitle" aria-hidden="true">
+      <div class="dialog dialog--result">
+        <span class="eyebrow"><span class="eyebrow-line"></span>MATCH COMPLETE <b>/</b> <span id="resultProtocol">PROTOCOL PRO</span></span>
+        <h2 class="dialog-title result-title" id="resultTitle">VICTORY<span class="accent-dot">.</span></h2>
+        <p class="dialog-sub" id="resultSub">Die Maschine liegt hinter dir.</p>
+        <div class="final-score">
+          <div class="final-team final-team--you"><span>DU</span><strong id="finalScoreYou">7</strong></div>
+          <span class="final-dash">—</span>
+          <div class="final-team final-team--ai"><span>NOVA</span><strong id="finalScoreAi">3</strong></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat"><span>SPIELZEIT</span><strong id="statTime">00:00</strong></div>
+          <div class="stat"><span>TOP SPEED</span><strong id="statSpeed">0 <small>KM/H</small></strong></div>
+          <div class="stat"><span>LÄNGSTE RALLY</span><strong id="statRally">0 <small>HITS</small></strong></div>
+          <div class="stat"><span>MALLET-HITS</span><strong id="statHits">0</strong></div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" id="rematchBtn"><span>REMATCH</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8a7.5 7.5 0 1 0 1 7M19 3v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="btn btn-ghost" id="changeBtn">PROTOKOLL WECHSELN</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="loading-screen" id="loadingScreen" aria-hidden="true">
+      <div class="loading-core"><i></i><i></i><i></i><span>NP</span></div>
+      <span class="loading-label">ARENA WIRD INITIALISIERT</span>
+    </div>
+  </div>
+
+  <noscript>
+    <div class="no-script">NEON PUCK benötigt JavaScript, um die Arena zu rendern.</div>
+  </noscript>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "neon-puck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEON PUCK — a neon 3D air hockey game with an adaptive AI and a 2D tactical top view.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
