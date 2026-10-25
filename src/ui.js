@@ -41,6 +41,7 @@ export class GameUI {
       change: document.getElementById('changeBtn'),
       sound: document.getElementById('soundBtn'),
       pauseButton: document.getElementById('pauseBtn'),
+      fullscreenButton: document.getElementById('fullscreenBtn'),
       brand: document.getElementById('brandHome'),
       controlHint: document.getElementById('controlHint'),
       goalFlash: document.getElementById('goalFlash'),
@@ -94,6 +95,11 @@ export class GameUI {
       this.callbacks.onPauseToggle?.();
     });
 
+    this.el.fullscreenButton?.addEventListener('click', () => {
+      this.callbacks.onUiSound?.();
+      this.callbacks.onFullscreenToggle?.();
+    });
+
     this.el.resume?.addEventListener('click', () => {
       this.callbacks.onUiSound?.();
       this.callbacks.onResume?.();
@@ -139,6 +145,23 @@ export class GameUI {
       this.el.sound.setAttribute('aria-pressed', String(this.muted));
       this.el.sound.setAttribute('aria-label', this.muted ? 'Ton einschalten' : 'Ton ausschalten');
     }
+  }
+
+  setFullscreenSupported(supported) {
+    if (!this.el.fullscreenButton) return;
+    this.el.fullscreenButton.hidden = !supported;
+  }
+
+  setFullscreenActive(active) {
+    const isActive = Boolean(active);
+    document.body.classList.toggle('is-fullscreen', isActive);
+    if (!this.el.fullscreenButton) return;
+    this.el.fullscreenButton.setAttribute('aria-pressed', String(isActive));
+    this.el.fullscreenButton.setAttribute(
+      'aria-label',
+      isActive ? 'Vollbild verlassen' : 'Vollbild aktivieren',
+    );
+    this.el.fullscreenButton.title = isActive ? 'Vollbild verlassen (F)' : 'Vollbild (F)';
   }
 
   selectDifficulty(id, { silent = false } = {}) {

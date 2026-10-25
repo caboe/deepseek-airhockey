@@ -59,6 +59,7 @@ PORT=8080 npm start
 | `V` | 3D-/2D-Ansicht wechseln |
 | `Esc` / `P` | Pause / weiter |
 | `M` | Ton stumm / an |
+| `F` / Button oben rechts | Vollbild ein / aus |
 | `WASD` / Pfeiltasten | Mallet per Tastatur bewegen |
 | `Enter` | Match im Hauptmenü starten (wenn kein Button fokussiert ist) |
 

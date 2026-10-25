@@ -20,6 +20,44 @@ function emitUiSound() {
   audio?.ui();
 }
 
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function isFullscreenSupported() {
+  const root = document.documentElement;
+  const hasRequest = typeof root.requestFullscreen === 'function' || typeof root.webkitRequestFullscreen === 'function';
+  return hasRequest && document.fullscreenEnabled !== false;
+}
+
+function syncFullscreenUI() {
+  ui?.setFullscreenActive(Boolean(getFullscreenElement()));
+}
+
+function toggleFullscreen() {
+  const root = document.documentElement;
+  if (getFullscreenElement()) {
+    const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+    if (typeof exitFullscreen !== 'function') return;
+    try {
+      const result = exitFullscreen.call(document);
+      result?.catch?.(() => {});
+    } catch {
+      /* browser refused the fullscreen transition */
+    }
+    return;
+  }
+
+  const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (typeof requestFullscreen !== 'function') return;
+  try {
+    const result = requestFullscreen.call(root);
+    result?.catch?.(() => {});
+  } catch {
+    /* browser refused the fullscreen transition */
+  }
+}
+
 function beginMatch(difficultyId) {
   if (!game || !arena) return;
   if (game.isActive && !game.paused) return;
@@ -238,6 +276,12 @@ function bindInput() {
       return;
     }
 
+    if (event.code === 'KeyF' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      toggleFullscreen();
+      return;
+    }
+
     if (event.code === 'KeyM') {
       event.preventDefault();
       toggleSound();
@@ -317,6 +361,7 @@ async function initialize() {
     onViewChange: setView,
     onSoundToggle: toggleSound,
     onPauseToggle: togglePause,
+    onFullscreenToggle: toggleFullscreen,
     onResume: () => game?.resume(),
     onRestart: () => beginMatch(game?.difficulty.id || 'pro'),
     onQuit: goHome,
@@ -327,6 +372,10 @@ async function initialize() {
 
   ui = new GameUI(uiCallbacks);
   ui.setSoundMuted(audio.muted);
+  ui.setFullscreenSupported(isFullscreenSupported());
+  syncFullscreenUI();
+  document.addEventListener('fullscreenchange', syncFullscreenUI);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 
   try {
     if (document.fonts?.ready) await document.fonts.ready.catch(() => {});
